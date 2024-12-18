@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop Columns</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .bucket, .columns {
+            width: 300px;
+            min-height: 400px;
+            border: 2px dashed #aaa;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .columns {
+            border: 2px solid #aaa;
+        }
+
+        .bucket {
+            background-color: #f9f9f9;
+        }
+
+        .bucket-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .column {
+            padding: 5px 10px;
+            margin: 5px 0;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 3px;
+            cursor: grab;
+        }
+
+        .column:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drag and Drop Columns into Buckets</h1>
+    <div class="container">
+        <div class="columns" id="columnPool" ondrop="drop(event, null)" ondragover="allowDrop(event)">
+            <!-- Columns will be dynamically added here -->
+            <div class="bucket-title">Column Pool</div>
+        </div>
+        <div class="bucket" id="bucket1" ondrop="drop(event, 'Shipmentmaster1to1')" ondragover="allowDrop(event)">
+            <div class="bucket-title">Shipmentmaster (1:1)</div>
+        </div>
+        <div class="bucket" id="bucket2" ondrop="drop(event, 'Shipmentmaster1toM')" ondragover="allowDrop(event)">
+            <div class="bucket-title">Shipmentmaster (1:M)</div>
+        </div>
+        <div class="bucket" id="bucket3" ondrop="drop(event, 'ShipmentmasterLogs')" ondragover="allowDrop(event)">
+            <div class="bucket-title">Shipmentmaster Logs</div>
+        </div>
+    </div>
+
+    <script>
+        // List of column names
+        const columnNames = [
+            'SHIPPINGID', 'CLIENTID', 'STATUS', 'SHIPMENTSTATUS', 'PAYLOAD', 'SYSTEMCREATEDDATE',
+            'USERPROCESS', 'PROCESSCODE', 'PARENTAWBNO', 'SHIPTOKENNUMBER', 'OLDCLIENTID', 'QCPARAMETERS',
+            'OLDPACKAGEDETAILS', 'BUSINESSFLOW', 'BUSINESSTYPE', 'BUSINESSACCOUNTNAME',
+            'CLIENTBUSINESSDETAILID', 'CLIENTBUSINESSACCOUNTID', 'PICKUPHUBID', 'ORIGINHUBID',
+            'CURRENTHUBID', 'FINALDESTINATIONID', 'RTOHUBID', 'ORDERNO', 'SUBORDERNO', 'ORDERTYPE',
+            'SERVICETYPE', 'DELIVERYTYPE', 'MULTISHIPMENTGROUPID', 'QUANTITY', 'COLLECTIBLEAMOUNT',
+            'DECLAREDVALUE', 'PICKUPTYPE', 'ISOPENDELIVERY', 'ISDGSHIPMENTTYPE', 'ISCOMMERCIALPROPERTY',
+            'ISHOLIDAYDELIVERYALLOW', 'CLIENTWAREHOUSEID', 'CREATEDBY', 'CREATEDDATE',
+            'LASTMODIFIEDBY', 'LASTMODIFIEDDATE', 'PICKUPNAME', 'PICKUPADDRESS', 'PICKUPCITY',
+            'PICKUPSTATE', 'PICKUPPINCODE', 'PICKUPEMAILID', 'PICKUPLANDMARK', 'PICKUPPHONENO',
+            'PICKUPVIRTUALNUMBER', 'PICKUPSECONDARYNAME', 'PICKUPSECONDARYADDRESS',
+            'PICKUPSECONDARYCITY', 'PICKUPSECONDARYSTATE', 'PICKUPSECONDARYPINCODE',
+            'PICKUPSECONDARYEMAILID', 'PICKUPSECONDARYLANDMARK', 'PICKUPSECONDARYPHONENO',
+            'NPRSECURITYCODE', 'PICKUPLATITUDE', 'PICKUPLONGITUDE', 'PICKUPMIDPOINT',
+            'PICKUPSLOTSDATE', 'PICKUPSLOTSTOTIME', 'PICKUPSLOTSFROMTIME', 'ISPICKUPPRIORITY',
+            'PICKUPVENDORCODE', 'PICKUPRADIUSLOCATION', 'ISPICKUPGENSECURITYCODE',
+            'PICKUPINSTRUCTION', 'PICKUPMAXTHRESHOLDRADIUS', 'PICKUPMINTHRESHOLDRADIUS',
+            'ISGEOPICKUPFENCINGENABLED', 'PICKUPGENDATE', 'PICKUPID', 'PICKUPCITYID', 'DROPNAME',
+            'DROPADDRESS', 'DROPCITY', 'DROPSTATE', 'DROPLANDMARK', 'DROPPINCODE', 'DROPEMAILID',
+            'DROPPHONENO', 'DROPVIRTUALNUMBER', 'DROPSECONDARYNAME', 'DROPSECONDARYADDRESS',
+            'DROPSECONDARYCITY', 'DROPSECONDARYSTATE', 'DROPSECONDARYLANDMARK',
+            'DROPSECONDARYPINCODE', 'DROPSECONDARYEMAILID', 'DROPSECONDARYPHONENO',
+            'DROPSECONDARYVIRTUALNUMBER', 'DROPNDRSECURITYCODE', 'DROPLATITUDE', 'DROPLONGITUDE',
+            'DROPSLOTTOTIME', 'DROPSLOTFROMTIME', 'DELIVERYSLOTSDATE', 'ISDLVDPRIORITY',
+            'DROPRADIUSLOCATION', 'DROPINSTRUCTION', 'DROPSHIPPINGCOMPANY',
+            'ISDROPGENSECURITYCODE', 'DROPMAXTHRESHOLDRADIUS', 'DROPMINTHRESHOLDRADIUS',
+            'ISGEOFENCINGENABLED', 'DELIVERYHUBNAME', 'RTONAME', 'RTOADDRESS', 'RTOCITY', 'RTOSTATE',
+            'RTOPINCODE', 'RTOLANDMARK', 'RTOMOBILE', 'RTOVIRTUALNUMBER', 'RTOSECONDARYNAME',
+            'RTOSECONDARYADDRESS', 'RTOSECONDARYCITY', 'RTOSECONDARYSTATE', 'RTOSECONDARYPINCODE',
+            'RTOSECONDARYLANDMARK', 'RTOSECONDARYMOBILE', 'RTOSECONDARYVIRTUALNUMBER', 'ISRTOPRIORITY',
+            'NOTIFICATIONSTATUS', 'NOTIFICATIONTYPE', 'ODAMISROUTECOUNT', 'REDIRECTTOADDRESS',
+            'REDIRECTDATE', 'REDIRECTPINCODE', 'ISREDIRECTTOBANK', 'ISREDIRECT', 'REATTEMPTDATE',
+            'HOLDDATE', 'ISRTOCOMPLIANT', 'RTOCOMPLIANTDATE', 'TOTALATTEMPTCOUNT',
+            'CSAWREATTEMPTCOUNT', 'ISFORCEFULLYRTONOTIFIED', 'ISTEMPINSCANALLOWED',
+            'WTINSCANFROMDEVICE', 'SOURCETYPE', 'ISSENDERNAME', 'SENDERNAME', 'XBAPIVALUE',
+            'REASONCODE', 'EDD', 'PDD', 'NEXTHUBID', 'BAGNO', 'ISNTSSHIPMENT', 'NTSDATE',
+            'LOSTDATE', 'LOSTHUBID', 'STDHUBID', 'STDDATE', 'RUNSHEETID', 'INSTRUCTION',
+            'ISTRYANDBUY', 'MARKSECTION', 'ORDERSOURCE', 'ISEPAYMENTMODE', 'EPAYMENTDATE',
+            'EPAYMENTNAME', 'EPAYMENTTYPE', 'FLYERBARCODE', 'INVOICETOTAL', 'LHARRIVALDATE',
+            'WEIGHTUNIT', 'PHYWEIGHT', 'VOLWEIGHT', 'BILLABLEWEIGHT', 'LBHUNIT', 'WIDTH', 'HEIGHT',
+            'LENGTH', 'PRODUCTUNIQUEID', 'REMANIFESTCOUNT', 'DEVICEID', 'DELIVERYEMAILID',
+            'DELIVERYDATETIME', 'DELIVERYUSERID', 'OLDDELIVERYUSERID', 'DEVICECAPTUREDDATE',
+            'STATUSMARKEDFROM', 'SCANTALLYBATCHID', 'ISHANDOVERCOURIER', 'ISREVERSESHIPMENT',
+            'ISSAMEDAYDELIVERY', 'ISCARGOSHIPMENT', 'ISREVERSEWEIGHTCAPTURED',
+            'VENDORPREALERTMANIFESTID', 'ISRECNOTIFIED', 'DROPMIDPOINT',
+            'ESCALATIONMARKEDBEFOREDEST', 'PRODUCTNAME', 'CUSTOMERPROMISEDATE',
+            'PRODUCTINFORMATION', 'SAATTEMPTCOUNT', 'HOLDSTATUSCODE', 'ISSEIZED', 'CLIENTNPROTP',
+            'CLIENTNDROTP', 'CONNECTIONSCHEDULEDMASTERID', 'RVPDISPUTECODE', 'RVPDISPUTEPROCESS',
+            'RVPSUBCOMMENTS', 'ISESCALATEDQC', 'RADDATE', 'OLDPICKUPDELIVERYUSERID',
+            'CLIENTVENDORID', 'ISSTOCKISTCONFIRMPRINT', 'COMBOHUBBATCHID', 'FIRSTINSCANDATE',
+            'PICKUPDELIVERYUSERID', 'ISESSENTIAL', 'SHIPMENTTYPE', 'CHARGESAMOUNT',
+            'RTOCHARGESAMOUNT', 'INSCANCHARGESAMOUNT', 'ISAMOUNTRELEASED', 'ISAUTHENTICNDR',
+            'ISLONGPINCODE', 'LONGPINCODECOUNT', 'UNIQUEREFERENCE', 'ISMARKFIR',
+            'REQUIREDPARAMETERS', 'CODREFUNDEDAMOUNT', 'ISMULTISHIPMENTFLAG', 'COURIERID',
+            'CASHAMOUNT', 'DIGITALAMOUNT', 'ISAGREEWITHXBWT', 'ISWTRECAPTUREREQUEST',
+            'ISMEASUREMENTFLAG', 'BOXID', 'ISNEWSYS', 'ISREALLOCATIONALLOWED',
+            'ISRESCHEDULEDALLOWED', 'ISHEAVIES', 'ISQCBYPASS', 'REALVOLWEIGHT', 'DW_CREATED',
+            'DW_UPDATED', 'DW_CREATED_BY', 'IS_DELETED', 'IS_LATEST', 'S3_SOURCE_FILENAME',
+            'CDC_TIMESTAMP'
+        ];
+
+        const buckets = {
+            Shipmentmaster1to1: [],
+            Shipmentmaster1toM: [],
+            ShipmentmasterLogs: []
+        };
+
+        // Populate the column pool with column names
+        const columnPool = document.getElementById('columnPool');
+        columnNames.forEach(name => {
+            const div = createColumnElement(name);
+            columnPool.appendChild(div);
+        });
+
+        // Drag and Drop Handlers
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData('text', event.target.id);
+        }
+
+        function drop(event, bucket) {
+            event.preventDefault();
+            const columnId = event.dataTransfer.getData('text');
+            const columnElement = document.getElementById(columnId);
+
+            // Remove column from its current bucket
+            for (let key in buckets) {
+                const index = buckets[key].indexOf(columnId);
+                if (index !== -1) {
+                    buckets[key].splice(index, 1);
+                    break;
+                }
+            }
+
+            // If dropped in the pool, remove from buckets
+            if (!bucket) {
+                // Add column back to pool
+                if (!columnPool.contains(columnElement)) {
+                    columnPool.appendChild(columnElement);
+                }
+            } else {
+                // Add column to the specified bucket if not already present
+                if (!buckets[bucket].includes(columnId)) {
+                    buckets[bucket].push(columnId);
+                    const targetBucket = document.getElementById(`bucket${Object.keys(buckets).indexOf(bucket) + 1}`);
+                    if (targetBucket && !targetBucket.contains(columnElement)) {
+                        targetBucket.appendChild(columnElement);
+                    }
+                }
+            }
+        }
+
+        // Helper to create a draggable column element
+        function createColumnElement(name) {
+            const div = document.createElement('div');
+            div.textContent = name;
+            div.className = 'column';
+            div.draggable = true;
+            div.id = name;
+            div.ondragstart = drag;
+            return div;
+        }
+
+        // Bucket click handlers to display column names
+        document.getElementById('bucket1').onclick = () => alert(`Shipmentmaster (1:1):\n${buckets.Shipmentmaster1to1.join(', ')}`);
+        document.getElementById('bucket2').onclick = () => alert(`Shipmentmaster (1:M):\n${buckets.Shipmentmaster1toM.join(', ')}`);
+        document.getElementById('bucket3').onclick = () => alert(`Shipmentmaster Logs:\n${buckets.ShipmentmasterLogs.join(', ')}`);
+    </script>
+</body>
+</html>
