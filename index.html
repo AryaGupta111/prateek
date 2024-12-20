@@ -143,6 +143,21 @@
             ShipmentmasterLogs: []
         };
 
+        // Load the bucket state from localStorage (if available)
+        function loadBucketsFromStorage() {
+            const savedBuckets = JSON.parse(localStorage.getItem('buckets'));
+            if (savedBuckets) {
+                Object.keys(savedBuckets).forEach(bucket => {
+                    buckets[bucket] = savedBuckets[bucket];
+                });
+            }
+        }
+
+        // Save the current bucket state to localStorage
+        function saveBucketsToStorage() {
+            localStorage.setItem('buckets', JSON.stringify(buckets));
+        }
+
         // Populate the column pool with column names
         const columnPool = document.getElementById('columnPool');
         columnNames.forEach(name => {
@@ -189,6 +204,9 @@
                     }
                 }
             }
+
+            // Save the updated buckets to localStorage
+            saveBucketsToStorage();
         }
 
         // Helper to create a draggable column element
@@ -206,6 +224,9 @@
         document.getElementById('bucket1').onclick = () => alert(`Shipmentmaster (1:1):\n${buckets.Shipmentmaster1to1.join(', ')}`);
         document.getElementById('bucket2').onclick = () => alert(`Shipmentmaster (1:M):\n${buckets.Shipmentmaster1toM.join(', ')}`);
         document.getElementById('bucket3').onclick = () => alert(`Shipmentmaster Logs:\n${buckets.ShipmentmasterLogs.join(', ')}`);
+
+        // Initialize the page with the buckets state from localStorage
+        loadBucketsFromStorage();
     </script>
 </body>
 </html>
